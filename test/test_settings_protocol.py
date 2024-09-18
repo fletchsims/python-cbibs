@@ -1,7 +1,7 @@
 from cbibs.buoy import Cbibs
 
 buoy = Cbibs('abcd')
-buoy_xml = Cbibs('abcd', data_type='xml')
+buoy_xml = Cbibs('abcd', resp_type='xml')
 
 
 # Check that the base url is being correctly generated
