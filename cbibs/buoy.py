@@ -1,9 +1,12 @@
 """CBIBS Module"""
 import requests
+import xml.etree.ElementTree as et
 
-DEFAULT_DOMAIN = 'mw.buoybay.noaa.gov'
+from requests.auth import HTTPBasicAuth
 
-__endpoints__ = ["json", "xml"]
+BASE_URL = 'https://mw.buoybay.noaa.gov/api/v1'
+__endpoints__ = ["station", ""]
+STATIONS = ['UP', 'GR', 'J', 'FL', 'SR', 'PL', 'AN', 'YS', 'N', 'SN', 'S']
 
 
 class CbibsApiError(Exception):
@@ -11,11 +14,7 @@ class CbibsApiError(Exception):
 
 
 class InvalidInputError(CbibsApiError):
-    """
-    There is a problem with the input the user provided.
-    - Bad value
-    - Invalid API Key
-    """
+    """There is a problem with the input the user provided."""
 
 
 class UnknownError(CbibsApiError):
@@ -23,13 +22,13 @@ class UnknownError(CbibsApiError):
 
 
 class Cbibs:
-    def __init__(self, key, protocol='https', domain=DEFAULT_DOMAIN, ver='v1', resp_type='json'):
+    session = None
+
+    def __init__(self, api_key, url=BASE_URL, response_format='json'):
         """Constructor"""
-        self.key = key
-        if protocol and protocol not in ('http', 'https'):
-            protocol = 'https'
-        self.resp_type = resp_type
-        self.url = f"{protocol}://{domain}/api/{ver}/{resp_type}/"
+        self.api_key = api_key
+        self.response_format = response_format
+        self.url = f"{url}/{response_format}"
 
     def __enter__(self):
         """Enter the method."""
@@ -43,24 +42,59 @@ class Cbibs:
         return False
 
     def get_latest_measurements_all_stations(self):
-        if self.session:
-            response = self.session.get(self.url)
-        else:
-            response = requests.get(self.url)
-        if response.status_code != requests.codes.ok:
+        url = f'{self.url}/station'
+        try:
+            response = self._make_request(url)
+            return self._parse_response(response)
+        except requests.RequestException as e:
             raise CbibsApiError
 
+    def get_latest_measurements_one_station(self, name):
+        """
+        Gets the latest measurements for a single station from CBIBS. Name needs to be
+        in the list of known stations and in all uppercase. Otherwise, function will throw
+        an error.
+
+        :param name: The name of the station in all caps.
+        :return: API response.
+        """
+        if name.upper() not in STATIONS:
+            raise InvalidInputError
+        url = f'{self.url}/station/{name.upper()}'
+        try:
+            response = self._make_request(url)
+            return self._parse_response(response)
+        except requests.RequestException as e:
+            raise CbibsApiError
+
+    def _make_request(self, url):
+        """
+        Make the GET request to the given URL.
+
+        :param url: URL to make the GET request to
+        :return: response object
+        """
+        if self.session:
+            response = self.session.get(url, params={'key': self.api_key})
+        else:
+            response = requests.get(url, params={'key': self.api_key})
+        if response.status_code != 200:
+            raise CbibsApiError
         return self._parse_response(response)
 
     def _parse_response(self, resp):
-        """Parse the response based on the data type (JSON or XML)"""
-        if self.resp_type == 'json':
+        """
+        Parse the response based on the data type (JSON or XML)
+
+        :param resp:
+        :return:
+        """
+        if self.response_format == 'json':
             return resp.json()
-        elif self.resp_type == 'xml':
-            # Parse XML and return ElementTree object
-            return ET.fromstring(resp.text)
+        elif self.response_format == 'xml':
+            return et.fromstring(resp.text)
         else:
-            raise ValueError(f"Unsupported data type: {self.resp_type}")
+            raise ValueError(f"Unsupported data type: {self.response_format}")
 
     def buoy(self, query, **kwargs):
         """
@@ -72,4 +106,3 @@ class Cbibs:
         :return:
         """
         pass
-

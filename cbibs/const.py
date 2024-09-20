@@ -1,1 +1,1 @@
-ALL_STATIONS_URL = ''
+BASE_URL = ''
