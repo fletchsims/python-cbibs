@@ -11,14 +11,26 @@ STATIONS = ['UP', 'GR', 'J', 'FL', 'SR', 'PL', 'AN', 'YS', 'N', 'SN', 'S']
 
 class CbibsApiError(Exception):
     """Base class for all errors/exceptions."""
+    def __init__(self, message='An error occurred with the CBIBS API'):
+        self.message = message
+        super().__init__(self.message)
 
 
 class InvalidInputError(CbibsApiError):
     """There is a problem with the input the user provided."""
+    def __init__(self, input_value):
+        self.input_value = input_value
+        message = f'Invalid input: {self.input_value}'
+        super().__init__(message)
 
 
 class UnknownError(CbibsApiError):
     """There is a problem with CBIBS server."""
+    def __init__(self, status_code, response_text):
+        self.status_code = status_code
+        self.response_text = response_text
+        message = f'Unknown error with CBIBS API (status code: {self.status_code}: {self.response_text}'
+        super().__init__(message)
 
 
 class Cbibs:
@@ -59,13 +71,14 @@ class Cbibs:
         :return: API response.
         """
         if name.upper() not in STATIONS:
-            raise InvalidInputError
+            raise InvalidInputError(name)
         url = f'{self.url}/station/{name.upper()}'
         try:
             response = self._make_request(url)
+            print(response.status_code)
             return self._parse_response(response)
         except requests.RequestException as e:
-            raise CbibsApiError
+            raise CbibsApiError(f'Request failed with {e}')
 
     def _make_request(self, url):
         """
