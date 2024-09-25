@@ -85,8 +85,8 @@ class Cbibs:
         :param name: The name of the station in all caps.
         :return: API response.
         """
-        # if name.upper() not in STATIONS:
-        #     raise InvalidStationCodeError(name)
+        if name.upper() not in STATIONS:
+            raise InvalidStationCodeError(name)
         url = f'{self.url}/station/{name.upper()}'
         response = self._make_request(url)
         content = self._parse_response(response)
