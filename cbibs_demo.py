@@ -4,6 +4,5 @@ buoy = Cbibs(api_key='')
 
 # print(buoy.get_latest_measurements_all_stations())
 
-res = buoy.get_latest_measurements_one_station('ann')
+res = buoy.get_current_readings_all_stations()
 print(res)
-print(len(res['stations']) == 0)
