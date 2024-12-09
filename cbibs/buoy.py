@@ -3,9 +3,17 @@ import xml.etree.ElementTree as et
 
 import requests
 
-BASE_URL = 'https://mw.buoybay.noaa.gov/api/v1'
+BASE_URL = 'https://mw.buoybay.noaa.gov/api'
 __endpoints__ = ["station", ""]
-STATIONS = ['UP', 'GR', 'J', 'FL', 'SR', 'PL', 'AN', 'YS', 'N', 'SN', 'S']
+STATIONS = frozenset({'UP', 'GR', 'J', 'FL', 'SR', 'PL', 'AN', 'YS', 'N', 'SN', 'S'})
+COMMON_PARAMETERS = frozenset({
+    'air_pressure', 'air_temperature', 'wind_speed', 'wind_speed_of_gust', 'wind_from_direction', 'relative_humidity',
+    'latitude_decimal', 'longitude_decimal', 'sea_water_temperature', 'sea_water_electrical_conductivity',
+    'mml_avg_nitrates', 'simple_turbidity', 'seanettle_prob', 'mass_concentration_of_chlorophyll_in_sea_water',
+    'mass_concentration_of_oxygen_in_sea_water', 'sea_water_salinity', 'sea_surface_wind_wave_period',
+    'wave_direction_spread', 'sea_surface_wave_from_direction', 'sea_surface_wave_significant_height',
+    'sea_surface_wave_mean_height'
+})
 
 
 class CbibsError(Exception):
@@ -39,7 +47,7 @@ class InvalidStationCodeError(CbibsError):
     def __init__(self, input_value):
         self.input_value = input_value
         message = (f'{self.input_value} is an invalid station code. The station code must be one of the following: '
-                   f'UP, GR, J, FL, SR, PL, AN, YS, N, SN, S.')
+                   f'UP, GR, J, FL, SR, PL, AN, YS, N, SN, S')
         super().__init__(message)
 
 
@@ -54,14 +62,14 @@ class UnknownError(CbibsError):
 
 
 class Cbibs:
-
     session = None
 
-    def __init__(self, api_key, url=BASE_URL, response_format='json'):
+    def __init__(self, api_key, url=BASE_URL, version='v1', response_format='json'):
         """Constructor"""
         self.api_key = api_key
         self.response_format = response_format
-        self.url = f"{url}/{response_format}"
+        self.version = version
+        self.url = f"{url}/{version}/{response_format}"
 
     def __enter__(self):
         """Enter the method."""
@@ -89,19 +97,21 @@ class Cbibs:
 
     def get_current_readings_one_station(self, station_name):
         """
-        Gets the latest measurements for a single station from CBIBS. Name needs to be
-        in the list of known stations and in all uppercase. Otherwise, function will throw
-        a InvalidStationCodeError error because the station does not exist.
+        Fetch the latest measurements for a specific CBIBS station.
 
-        :param station_name: The name of the station in all caps.
-        :return: API response.
+        :param station_name: Name of the station (must be in uppercase and valid).
+        :return: Parsed API response as a dictionary.
+        :raises InvalidStationCodeError: If station_name is invalid.
         """
-        if station_name.upper() not in STATIONS:
-            raise InvalidStationCodeError(station_name)
+        self._validate_station(station_name)
         url = f'{self.url}/station/{station_name.upper()}'
         response = self._make_request(url)
         content = self._parse_response(response)
         return content
+
+    def _validate_station(self, station_name: str):
+        if station_name.upper() not in STATIONS:
+            raise InvalidStationCodeError(station_name)
 
     def _make_request(self, url, params=None):
         """
