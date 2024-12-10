@@ -7,7 +7,7 @@ Python module to interact with the CBIBS API.
 ## Installation ##
 To get the package, execute:
 ```shell
-pip install cbibs
+pip install python-cbibs
 ```
 
 ## Usage ##
