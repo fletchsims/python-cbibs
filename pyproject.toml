@@ -1,6 +1,6 @@
 [project]
 name = "python-cbibs"
-version = "0.0.1"
+version = "0.0.2"
 authors = [
     { name="FLetcher Sims", email="fletcher.sims@gmail.com" },
 ]
