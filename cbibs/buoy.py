@@ -1,8 +1,8 @@
 """CBIBS Module"""
 import xml.etree.ElementTree as et
 
-from dateutil.parser import isoparse
 import requests
+from dateutil.parser import isoparse
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
