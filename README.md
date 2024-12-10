@@ -6,7 +6,9 @@ Python module to interact with the CBIBS API.
 
 ## Installation ##
 To get the package, execute:
-``pip install cbibs``
+```shell
+pip install cbibs
+```
 
 ## Usage ##
 View the CBIBS API documentation on [CBIBS](https://www.buoybay.noaa.gov/data/api). By default the response output will 
