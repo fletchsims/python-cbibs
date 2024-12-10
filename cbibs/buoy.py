@@ -4,7 +4,7 @@ import xml.etree.ElementTree as et
 import requests
 
 BASE_URL = 'https://mw.buoybay.noaa.gov/api'
-__endpoints__ = ["station", ""]
+__endpoints__ = ["station", "query"]
 STATIONS = frozenset({'UP', 'GR', 'J', 'FL', 'SR', 'PL', 'AN', 'YS', 'N', 'SN', 'S'})
 COMMON_PARAMETERS = frozenset({
     'air_pressure', 'air_temperature', 'wind_speed', 'wind_speed_of_gust', 'wind_from_direction', 'relative_humidity',
@@ -82,32 +82,50 @@ class Cbibs:
         self.session = None
         return False
 
-    def get_all_station_criteria(self, params=None):
-        """
-        Get all stations data based on certain criteria.
-
-        :param params:
-        :return:
-        """
-
     def get_current_readings_all_stations(self):
         url = f'{self.url}/station'
         response = self._make_request(url)
         return self._parse_response(response)
 
-    def get_current_readings_one_station(self, station_name):
+    def query_station(self, station_name: str,
+                      start_date: str,
+                      end_date: str,
+                      variable: str):
         """
-        Fetch the latest measurements for a specific CBIBS station.
+        Query data from a specific station with optional parameters.
 
-        :param station_name: Name of the station (must be in uppercase and valid).
-        :return: Parsed API response as a dictionary.
-        :raises InvalidStationCodeError: If station_name is invalid.
+        :param station_name: The station name (e.g., 'AN').
+        :param start_date: Start date and time in ISO 8601 format (e.g., '2020-04-01T10:00:00z').
+        :param end_date: End date and time in ISO 8601 format (e.g., '2020-04-01T20:00:00z').
+        :param variable: The variable to query (e.g., 'sea_water_temperature').
+        :return: Parsed API response.
         """
+
         self._validate_station(station_name)
-        url = f'{self.url}/station/{station_name.upper()}'
+        params = {}
+        if start_date:
+            params["sd"] = start_date
+        if end_date:
+            params["ed"] = end_date
+        if variable:
+            params["var"] = variable
+
+        url = f"{self.url}/query/{station_name.upper()}"
+        response = self._make_request(url, params=params)
+        return self._parse_response(response)
+
+    def get_station_readings(self, station_name: str):
+        """
+        Query data from a specific station with optional parameters.
+
+        :param station_name: The station name (e.g., 'AN').
+        :return: Parsed API response.
+        """
+
+        self._validate_station(station_name)
+        url = f"{self.url}/station/{station_name.upper()}"
         response = self._make_request(url)
-        content = self._parse_response(response)
-        return content
+        return self._parse_response(response)
 
     def _validate_station(self, station_name: str):
         if station_name.upper() not in STATIONS:
@@ -156,14 +174,3 @@ class Cbibs:
             return et.fromstring(resp.text)
         else:
             raise ValueError(f"Unsupported response format: {self.response_format}")
-
-    def buoy(self, query, **kwargs):
-        """
-        Current/active values for either one station or all stations (xml or json)
-        Time based values for either one station or all stations (xml or json)
-        Time based values for a specific var for one station or all stations (xml or json)
-        :param query:
-        :param kwargs:
-        :return:
-        """
-        pass
