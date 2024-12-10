@@ -21,7 +21,9 @@ formatted_start = format_date(start)  # '2020-04-01T10:00:00z'
 formatted_end = format_date(end)
 response = buoy.query_station(
     station_name="AN",
-    start_date=formatted_start,
-    end_date=formatted_end,
+    start_date='2020-04-01T10:00:00z',
+    end_date='2020-04-01T20:00:00z',
     variable="sea_water_temperature"
 )
+
+print(response)

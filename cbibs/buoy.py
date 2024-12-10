@@ -1,9 +1,14 @@
 """CBIBS Module"""
 import xml.etree.ElementTree as et
 
+from dateutil.parser import isoparse
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
 
 BASE_URL = 'https://mw.buoybay.noaa.gov/api'
+SUPPORTED_FORMATS = {'json', 'xml'}
+DEFAULT_TIMEOUT = 10
 __endpoints__ = ["station", "query"]
 STATIONS = frozenset({'UP', 'GR', 'J', 'FL', 'SR', 'PL', 'AN', 'YS', 'N', 'SN', 'S'})
 COMMON_PARAMETERS = frozenset({
@@ -12,7 +17,7 @@ COMMON_PARAMETERS = frozenset({
     'mml_avg_nitrates', 'simple_turbidity', 'seanettle_prob', 'mass_concentration_of_chlorophyll_in_sea_water',
     'mass_concentration_of_oxygen_in_sea_water', 'sea_water_salinity', 'sea_surface_wind_wave_period',
     'wave_direction_spread', 'sea_surface_wave_from_direction', 'sea_surface_wave_significant_height',
-    'sea_surface_wave_mean_height'
+    'sea_surface_wave_mean_height', 'all'
 })
 
 
@@ -62,18 +67,18 @@ class UnknownError(CbibsError):
 
 
 class Cbibs:
-    session = None
-
     def __init__(self, api_key, url=BASE_URL, version='v1', response_format='json'):
         """Constructor"""
         self.api_key = api_key
         self.response_format = response_format
         self.version = version
         self.url = f"{url}/{version}/{response_format}"
+        self.session = None
 
     def __enter__(self):
-        """Enter the method."""
         self.session = requests.Session()
+        retries = Retry(total=3, backoff_factor=0.3, status_forcelist=[500, 502, 503, 504])
+        self.session.mount('https://', HTTPAdapter(max_retries=retries))
         return self
 
     def __exit__(self, *args):
@@ -102,13 +107,17 @@ class Cbibs:
         """
 
         self._validate_station(station_name)
-        params = {}
         if start_date:
-            params["sd"] = start_date
+            self._validate_iso8601(start_date)
         if end_date:
-            params["ed"] = end_date
-        if variable:
-            params["var"] = variable
+            self._validate_iso8601(end_date)
+        if variable and variable not in COMMON_PARAMETERS:
+            raise InvalidInputError(f"Invalid variable: {variable}")
+        params = {
+            "sd": start_date,
+            "ed": end_date,
+            "var": variable
+        }
 
         url = f"{self.url}/query/{station_name.upper()}"
         response = self._make_request(url, params=params)
@@ -131,7 +140,7 @@ class Cbibs:
         if station_name.upper() not in STATIONS:
             raise InvalidStationCodeError(station_name)
 
-    def _make_request(self, url, params=None):
+    def _make_request(self, url: str, params: dict = None):
         """
         Make the GET request to the given URL.
 
@@ -147,9 +156,9 @@ class Cbibs:
         params['key'] = self.api_key
 
         if self.session:
-            response = self.session.get(url, params=params)
+            response = self.session.get(url, params=params, timeout=DEFAULT_TIMEOUT)
         else:
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=DEFAULT_TIMEOUT)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError:
@@ -174,3 +183,9 @@ class Cbibs:
             return et.fromstring(resp.text)
         else:
             raise ValueError(f"Unsupported response format: {self.response_format}")
+
+    def _validate_iso8601(self, date_str):
+        try:
+            isoparse(date_str)
+        except ValueError:
+            raise InvalidInputError(f"Invalid ISO 8601 date: {date_str}")
