@@ -22,7 +22,7 @@ buoy = Cbibs(api_key='API_KEY')
 buoy_xml = Cbibs(api_key='API_KEY', response_format='xml')
 
 # Get all current readings from all stations
-latest_all_xml = buoy.get_current_readings_all_stations()
+latest_all = buoy.get_current_readings_all_stations()
 
 # Get the latest station readings from AN
 station_readings = buoy.get_station_readings('AN')
