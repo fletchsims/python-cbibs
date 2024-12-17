@@ -136,7 +136,8 @@ class Cbibs:
         response = self._make_request(url)
         return self._parse_response(response)
 
-    def _validate_station(self, station_name: str):
+    @staticmethod
+    def _validate_station(station_name: str):
         if station_name.upper() not in STATIONS:
             raise InvalidStationCodeError(station_name)
 
@@ -184,7 +185,8 @@ class Cbibs:
         else:
             raise ValueError(f"Unsupported response format: {self.response_format}")
 
-    def _validate_iso8601(self, date_str):
+    @staticmethod
+    def _validate_iso8601(date_str):
         try:
             isoparse(date_str)
         except ValueError:
