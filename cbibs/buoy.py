@@ -8,7 +8,7 @@ from urllib3 import Retry
 
 BASE_URL = 'https://mw.buoybay.noaa.gov/api'
 SUPPORTED_FORMATS = {'json', 'xml'}
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 60
 __endpoints__ = ["station", "query"]
 STATIONS = frozenset({'UP', 'GR', 'J', 'FL', 'SR', 'PL', 'AN', 'YS', 'N', 'SN', 'S'})
 COMMON_PARAMETERS = frozenset({
